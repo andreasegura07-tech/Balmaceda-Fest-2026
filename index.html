@@ -1,215 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Balmaceda Fest Photobooth</title>
-
 <style>
-
-body{
-margin:0;
-background:#111;
-font-family:Arial;
-text-align:center;
-color:white;
-}
-
-h2{
-margin-top:10px;
-}
-
-#container{
-position:relative;
-display:inline-block;
-width:90vw;
-max-width:400px;
-}
-
-video{
-width:100%;
-border-radius:15px;
-}
-
-#frame{
-position:absolute;
-top:0;
-left:0;
-width:100%;
-pointer-events:none;
-}
-
-#countdown{
-position:absolute;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-font-size:90px;
-font-weight:bold;
-color:white;
-display:none;
-}
-
-button{
-margin-top:20px;
-padding:15px 25px;
-font-size:18px;
-border:none;
-border-radius:12px;
-background:#ff4081;
-color:white;
-}
-
+body{margin:0;background:#111;font-family:Arial;text-align:center;color:white;}
+#container{position:relative;display:inline-block;width:90vw;max-width:400px;}
+video{width:100%;border-radius:15px;}
+#frame{position:absolute;top:0;left:0;width:100%;pointer-events:none;}
+#countdown{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:90px;font-weight:bold;color:white;display:none;}
+button{margin-top:20px;padding:15px 25px;font-size:18px;border:none;border-radius:12px;background:#ff4081;color:white;}
 </style>
 </head>
-
 <body>
-
-<h2>📸 Balmaceda Fest Photobooth</h2>
-
+<h2>📸 Balmaceda Fest</h2>
 <div id="container">
-
-<video id="video" autoplay playsinline></video>
-
-<img id="frame" src="marco.png">
-
-<div id="countdown"></div>
-
+  <video id="video" autoplay playsinline></video>
+  <img id="frame" src="marco.png">
+  <div id="countdown"></div>
 </div>
-
 <br>
-
 <button onclick="startSession()">Tomar Fotos</button>
-
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
-
 const video = document.getElementById("video");
+navigator.mediaDevices.getUserMedia({ video:{facingMode:"user"} })
+  .then(stream => { video.srcObject = stream; });
 
-navigator.mediaDevices.getUserMedia({
-video:{facingMode:"user"}
-}).then(stream=>{
-video.srcObject = stream;
-});
+let frameImg = new Image();
+frameImg.crossOrigin = "anonymous";
+frameImg.src = "marco.png";
+
+// ✅ Dimensiones del marco
+const FRAME_W = 400;
+const FRAME_H = 300;
+const STRIP_H = FRAME_H * 4; // 1200
 
 let photos = [];
 
 function startSession(){
-
-photos = [];
-takeSequence();
-
+  photos = [];
+  takeSequence();
 }
 
 function takeSequence(){
-
-if(photos.length === 4){
-
-createStrip();
-return;
-
-}
-
-startCountdown();
-
+  if(photos.length === 4){
+    createStrip();
+    return;
+  }
+  startCountdown();
 }
 
 function startCountdown(){
-
-let count = 3;
-const cd = document.getElementById("countdown");
-
-cd.style.display="block";
-cd.innerHTML=count;
-
-const timer=setInterval(()=>{
-
-count--;
-
-if(count>0){
-
-cd.innerHTML=count;
-
-}else{
-
-clearInterval(timer);
-cd.style.display="none";
-
-capture();
-
-setTimeout(()=>{
-takeSequence();
-},1500);
-
-}
-
-},1000);
-
-}
-
-function capture(){
-
-const canvas=document.getElementById("canvas");
-const ctx=canvas.getContext("2d");
-
-canvas.width=video.videoWidth;
-canvas.height=video.videoHeight;
-
-ctx.drawImage(video,0,0);
-
-photos.push(canvas.toDataURL());
-
-}
-
-function createStrip(){
-
-const canvas=document.createElement("canvas");
-const ctx=canvas.getContext("2d");
-
-canvas.width=400;
-canvas.height=1600;
-
-let imgHeight=400;
-let loaded=0;
-
-photos.forEach((src,i)=>{
-
-const img=new Image();
-
-img.onload=function(){
-
-ctx.drawImage(img,0,i*imgHeight,400,400);
-
-loaded++;
-
-if(loaded===photos.length){
-
-download(canvas);
-
-}
-
-};
-
-img.src=src;
-
-});
-
-}
-
-function download(canvas){
-
-const link=document.createElement("a");
-
-link.download="balmaceda-photobooth.png";
-
-link.href=canvas.toDataURL();
-
-link.click();
-
-}
-
-</script>
-
-</body>
-</html>
+  let count = 3;
+  const cd = document.getElementById("countdown");
+  cd.style.display = "block";
+  cd.i

@@ -158,7 +158,6 @@ canvas.width = 400;
 canvas.height = 1600;
 
 let imgHeight = 400;
-
 let loaded = 0;
 
 photos.forEach((src,i)=>{
@@ -173,7 +172,7 @@ loaded++;
 
 if(loaded === photos.length){
 
-download(canvas);
+addFrame(canvas);
 
 }
 
@@ -182,6 +181,30 @@ download(canvas);
 img.src = src;
 
 });
+
+}
+
+function addFrame(canvas){
+
+const ctx = canvas.getContext("2d");
+
+const frame = new Image();
+
+frame.onload = function(){
+
+ctx.drawImage(frame,0,0,canvas.width,canvas.height);
+
+download(canvas);
+
+};
+
+frame.onerror = function(){
+
+download(canvas);
+
+};
+
+frame.src = "marco.png";
 
 }
 

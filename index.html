@@ -31,6 +31,14 @@ width:100%;
 border-radius:15px;
 }
 
+#frame{
+position:absolute;
+top:0;
+left:0;
+width:100%;
+pointer-events:none;
+}
+
 #countdown{
 position:absolute;
 top:50%;
@@ -38,8 +46,8 @@ left:50%;
 transform:translate(-50%,-50%);
 font-size:90px;
 font-weight:bold;
-display:none;
 color:white;
+display:none;
 }
 
 button{
@@ -60,8 +68,13 @@ color:white;
 <h2>📸 Balmaceda Fest Photobooth</h2>
 
 <div id="container">
+
 <video id="video" autoplay playsinline></video>
+
+<img id="frame" src="marco.png">
+
 <div id="countdown"></div>
+
 </div>
 
 <br>
@@ -107,21 +120,21 @@ function startCountdown(){
 let count = 3;
 const cd = document.getElementById("countdown");
 
-cd.style.display = "block";
-cd.innerHTML = count;
+cd.style.display="block";
+cd.innerHTML=count;
 
-const timer = setInterval(()=>{
+const timer=setInterval(()=>{
 
 count--;
 
-if(count > 0){
+if(count>0){
 
-cd.innerHTML = count;
+cd.innerHTML=count;
 
 }else{
 
 clearInterval(timer);
-cd.style.display = "none";
+cd.style.display="none";
 
 capture();
 
@@ -137,11 +150,11 @@ takeSequence();
 
 function capture(){
 
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
 
-canvas.width = video.videoWidth;
-canvas.height = video.videoHeight;
+canvas.width=video.videoWidth;
+canvas.height=video.videoHeight;
 
 ctx.drawImage(video,0,0);
 
@@ -151,70 +164,46 @@ photos.push(canvas.toDataURL());
 
 function createStrip(){
 
-const canvas = document.createElement("canvas");
-const ctx = canvas.getContext("2d");
+const canvas=document.createElement("canvas");
+const ctx=canvas.getContext("2d");
 
-canvas.width = 400;
-canvas.height = 1600;
+canvas.width=400;
+canvas.height=1600;
 
-let imgHeight = 400;
-let loaded = 0;
+let imgHeight=400;
+let loaded=0;
 
 photos.forEach((src,i)=>{
 
-const img = new Image();
+const img=new Image();
 
-img.onload = function(){
+img.onload=function(){
 
 ctx.drawImage(img,0,i*imgHeight,400,400);
 
 loaded++;
 
-if(loaded === photos.length){
+if(loaded===photos.length){
 
-addFrame(canvas);
+download(canvas);
 
 }
 
 };
 
-img.src = src;
+img.src=src;
 
 });
 
 }
 
-function addFrame(canvas){
-
-const ctx = canvas.getContext("2d");
-
-const frame = new Image();
-
-frame.onload = function(){
-
-ctx.drawImage(frame,0,0,canvas.width,canvas.height);
-
-download(canvas);
-
-};
-
-frame.onerror = function(){
-
-download(canvas);
-
-};
-
-frame.src = "marco.png";
-
-}
-
 function download(canvas){
 
-const link = document.createElement("a");
+const link=document.createElement("a");
 
-link.download = "balmaceda-photobooth.png";
+link.download="balmaceda-photobooth.png";
 
-link.href = canvas.toDataURL();
+link.href=canvas.toDataURL();
 
 link.click();
 

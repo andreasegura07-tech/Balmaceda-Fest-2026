@@ -5,50 +5,83 @@
 <title>Balmaceda Fest Photobooth</title>
 <style>
 body{margin:0;background:#111;font-family:Arial;text-align:center;color:white;}
-#container{position:relative;display:inline-block;width:90vw;max-width:400px;}
-video{width:100%;border-radius:15px;}
-#frame{position:absolute;top:0;left:0;width:100%;pointer-events:none;}
-#countdown{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:90px;font-weight:bold;color:white;display:none;}
-button{margin-top:20px;padding:15px 25px;font-size:18px;border:none;border-radius:12px;background:#ff4081;color:white;}
+#wrapper{display:inline-block;width:90vw;max-width:400px;}
+#container{position:relative;width:100%;}
+video{width:100%;display:block;border-radius:10px;}
+#frame{
+  position:absolute;
+  top:0; left:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  pointer-events:none;
+}
+#countdown{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  font-size:90px;font-weight:bold;
+  color:white;text-shadow:2px 2px 8px #000;
+  display:none;
+}
+#btn{
+  display:block;
+  width:100%;
+  margin-top:15px;
+  padding:15px 25px;
+  font-size:18px;
+  border:none;border-radius:12px;
+  background:#ff4081;color:white;
+  cursor:pointer;
+}
+#status{margin-top:10px;font-size:16px;min-height:24px;}
 </style>
 </head>
 <body>
 <h2>📸 Balmaceda Fest</h2>
-<div id="container">
-  <video id="video" autoplay playsinline></video>
-  <img id="frame" src="marco.png">
-  <div id="countdown"></div>
+<div id="wrapper">
+  <div id="container">
+    <video id="video" autoplay playsinline></video>
+    <img id="frame" src="marco.png">
+    <div id="countdown"></div>
+  </div>
+  <button id="btn" onclick="startSession()">📷 Tomar Fotos</button>
+  <div id="status"></div>
 </div>
-<br>
-<button onclick="startSession()">Tomar Fotos</button>
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
 const video = document.getElementById("video");
+const status = document.getElementById("status");
+const btn = document.getElementById("btn");
+
 navigator.mediaDevices.getUserMedia({ video:{facingMode:"user"} })
-  .then(stream => { video.srcObject = stream; });
+  .then(stream => { video.srcObject = stream; })
+  .catch(err => { status.textContent = "❌ No se pudo acceder a la cámara"; });
 
 let frameImg = new Image();
 frameImg.crossOrigin = "anonymous";
 frameImg.src = "marco.png";
 
-// ✅ Dimensiones del marco
 const FRAME_W = 400;
 const FRAME_H = 300;
-const STRIP_H = FRAME_H * 4; // 1200
+const STRIP_H = FRAME_H * 4; // 1200px total
 
 let photos = [];
 
 function startSession(){
   photos = [];
+  btn.disabled = true;
+  btn.style.opacity = "0.5";
+  status.textContent = "";
   takeSequence();
 }
 
 function takeSequence(){
   if(photos.length === 4){
+    status.textContent = "✅ ¡Listo! Generando tira...";
     createStrip();
     return;
   }
+  status.textContent = `Foto ${photos.length + 1} de 4`;
   startCountdown();
 }
 
@@ -56,4 +89,67 @@ function startCountdown(){
   let count = 3;
   const cd = document.getElementById("countdown");
   cd.style.display = "block";
-  cd.i
+  cd.innerHTML = count;
+  const timer = setInterval(() => {
+    count--;
+    if(count > 0){
+      cd.innerHTML = count;
+    } else {
+      clearInterval(timer);
+      cd.style.display = "none";
+      capture();
+      setTimeout(() => { takeSequence(); }, 1200);
+    }
+  }, 1000);
+}
+
+function capture(){
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0);
+  photos.push(canvas.toDataURL());
+}
+
+function createStrip(){
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = FRAME_W;
+  canvas.height = STRIP_H;
+  let loaded = 0;
+
+  photos.forEach((src, i) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function(){
+      ctx.drawImage(img, 0, i * FRAME_H, FRAME_W, FRAME_H);
+      loaded++;
+      if(loaded === photos.length){
+        const applyFrame = () => {
+          for(let j = 0; j < 4; j++){
+            ctx.drawImage(frameImg, 0, j * FRAME_H, FRAME_W, FRAME_H);
+          }
+          btn.disabled = false;
+          btn.style.opacity = "1";
+          status.textContent = "🎉 ¡Descargando tira!";
+          download(canvas);
+        };
+        frameImg.complete ? applyFrame() : (frameImg.onload = applyFrame);
+      }
+    };
+    img.src = src;
+  });
+}
+
+function download(canvas){
+  const link = document.createElement("a");
+  link.download = "balmaceda-strip.png";
+  link.href = canvas.toDataURL();
+  link.click();
+}
+</script>
+</body>
+</html>
+```
+

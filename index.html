@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Balmaceda Fest Photobooth</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #111;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  color: white;
+  padding: 16px 16px 40px;
+}
+
+h2 { font-size: 22px; margin-bottom: 14px; letter-spacing: 1px; }
+
+#wrapper {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+#container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
+video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+#frame {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#countdown {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 100px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 3px 3px 12px #000;
+  display: none;
+  z-index: 3;
+}
+
+#thumbnails { display: flex; gap: 8px; justify-content: center; width: 100%; }
+#thumbnails img {
+  width: 23%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 2px solid #444;
+  opacity: 0.3;
+  transition: opacity 0.3s;
+  background: #222;
+}
+#thumbnails img.taken { opacity: 1; border-color: #ff4081; }
+
+#btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 20px;
+  font-weight: bold;
+  border: none;
+  border-radius: 14px;
+  background: #ff4081;
+  color: white;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+#btn:active { transform: scale(0.97); }
+#btn:disabled { opacity: 0.5; }
+
+#status { font-size: 15px; min-height: 22px; color: #ccc; }
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  width: 100%;
+  max-width: 420px;
+  margin: 28px auto 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #333;
+}
+.tab-btn {
+  flex: 1;
+  padding: 12px;
+  background: #1e1e1e;
+  color: #aaa;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.tab-btn.active { background: #ff4081; color: white; font-weight: bold; }
+
+.tab-content { display: none; width: 100%; max-width: 420px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* ── GALERÍA ── */
+#gallery-count { font-size: 13px; color: #888; margin: 12px 0; }
+
+#gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.gallery-item {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #222;
+  cursor: pointer;
+}
+.gallery-item img {
+  width: 100%;
+  aspect-ratio: 1080 / 3240;
+  object-fit: cover;
+  display: block;
+}
+.gallery-item .dl-btn {
+  position: absolute;
+  bottom: 6px; right: 6px;
+  background: rgba(0,0,0,0.65);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-size: 18px;
+  cursor: pointer;
+}
+.gallery-item .ts {
+  position: absolute;
+  bottom: 6px; left: 6px;
+  background: rgba(0,0,0,0.55);
+  color: #ddd;
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 6px;
+}
+
+/* loading spinner */
+#gallery-loading { padding: 30px; color: #666; font-size: 15px; }
+
+/* ── LIGHTBOX ── */
+#lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 100;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 100%; max-height: 80vh; border-radius: 10px; object-fit: contain; }
+#lightbox-actions { display: flex; gap: 12px; margin-top: 16px; }
+#lightbox-actions button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+#lb-download { background: #ff4081; color: white; }
+#lb-close    { background: #333; color: white; }
+</style>
+</head>
+<body>
+
+<h2>📸 Balmaceda Fest</h2>
+
+<div id="wrapper">
+  <div id="container">
+    <video id="video" autoplay playsinline muted></video>
+    <img id="frame" src="marco.png">
+    <div id="countdown"></div>
+  </div>
+  <div id="thumbnails">
+    <img id="th0"><img id="th1"><img id="th2"><img id="th3">
+  </div>
+  <button id="btn" onclick="startSession()">📷 Tomar Fotos</button>
+  <div id="status"></div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('gallery-tab', this)">🎞️ Galería</button>
+  <button class="tab-btn" onclick="switchTab('info-tab', this)">ℹ️ Info</button>
+</div>
+
+<!-- TAB: GALERÍA -->
+<div id="gallery-tab" class="tab-content active">
+  <div id="gallery-count"></div>
+  <div id="gallery-loading">Cargando fotos...</div>
+  <div id="gallery"></div>
+</div>
+
+<!-- TAB: INFO -->
+<div id="info-tab" class="tab-content">
+  <div style="padding:20px;color:#aaa;font-size:14px;line-height:1.7;">
+    <p>📱 Compartí este link con todos:</p>
+    <p id="page-url" style="color:#ff4081;font-size:13px;word-break:break-all;margin:10px 0;"></p>
+    <button onclick="copyLink()" style="padding:10px 20px;border:none;border-radius:10px;background:#ff4081;color:white;font-size:15px;cursor:pointer;">📋 Copiar link</button>
+    <p style="margin-top:20px;">Las fotos se guardan automáticamente y cualquier persona con el link puede verlas. 🎉</p>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox">
+  <img id="lb-img" src="">
+  <div id="lightbox-actions">
+    <button id="lb-download" onclick="downloadLightbox()">⬇️ Descargar</button>
+    <button id="lb-close" onclick="closeLightbox()">✕ Cerrar</button>
+  </div>
+</div>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp }                        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getStorage, ref, uploadBytes, getDownloadURL }
+                                                from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+import { getFirestore, collection, addDoc, onSnapshot, orderBy, query }
+                                                from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyDnvxMnlQI2zCqPCeuS8fqPX_h8wPhQgC0",
+  authDomain:        "balmaceda-fest.firebaseapp.com",
+  projectId:         "balmaceda-fest",
+  storageBucket:     "balmaceda-fest.firebasestorage.app",
+  messagingSenderId: "500422435955",
+  appId:             "1:500422435955:web:38826df0b2a3ed4888f606"
+};
+
+const app       = initializeApp(firebaseConfig);
+const storage   = getStorage(app);
+const db        = getFirestore(app);
+
+// ── Cámara ──────────────────────────────────────────────
+const video    = document.getElementById("video");
+const statusEl = document.getElementById("status");
+const btn      = document.getElementById("btn");
+
+const FRAME_W = 1080, FRAME_H = 810, STRIP_H = FRAME_H * 4;
+
+navigator.mediaDevices.getUserMedia({
+  video: { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } }
+}).then(s => { video.srcObject = s; })
+  .catch(() => { statusEl.textContent = "❌ No se pudo acceder a la cámara"; });
+
+const stripFrame = new Image();
+stripFrame.crossOrigin = "anonymous";
+stripFrame.src = "marco_tira.png";
+
+let photos = [];
+
+window.startSession = function(){
+  photos = [];
+  for(let i = 0; i < 4; i++){
+    const th = document.getElementById("th" + i);
+    th.removeAttribute("src");
+    th.classList.remove("taken");
+  }
+  btn.disabled = true;
+  statusEl.textContent = "";
+  takeSequence();
+};
+
+function takeSequence(){
+  if(photos.length === 4){ statusEl.textContent = "✅ Generando tira..."; createStrip(); return; }
+  statusEl.textContent = `Foto ${photos.length + 1} de 4`;
+  startCountdown();
+}
+
+function startCountdown(){
+  let count = 3;
+  const cd = document.getElementById("countdown");
+  cd.style.display = "block";
+  cd.innerHTML = count;
+  const timer = setInterval(() => {
+    count--;
+    if(count > 0){ cd.innerHTML = count; }
+    else {
+      clearInterval(timer);
+      cd.style.display = "none";
+      capture();
+      setTimeout(takeSequence, 1000);
+    }
+  }, 1000);
+}
+
+function capture(){
+  const canvas = document.getElementById("canvas");
+  const ctx    = canvas.getContext("2d");
+  canvas.width = FRAME_W; canvas.height = FRAME_H;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const tr = FRAME_W / FRAME_H, vr = vw / vh;
+  let sx, sy, sw, sh;
+  if(vr > tr){ sh = vh; sw = vh * tr; sx = (vw-sw)/2; sy = 0; }
+  else        { sw = vw; sh = vw / tr; sx = 0; sy = (vh-sh)/2; }
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, FRAME_W, FRAME_H);
+  const dataURL = canvas.toDataURL("image/jpeg", 0.92);
+  const idx = photos.length;
+  photos.push(dataURL);
+  const th = document.getElementById("th" + idx);
+  th.src = dataURL; th.classList.add("taken");
+}
+
+function createStrip(){
+  const canvas = document.createElement("canvas");
+  const ctx    = canvas.getContext("2d");
+  canvas.width = FRAME_W; canvas.height = STRIP_H;
+  let loaded = 0;
+  photos.forEach((src, i) => {
+    const img = new Image();
+    img.onload = function(){
+      ctx.drawImage(img, 0, i * FRAME_H, FRAME_W, FRAME_H);
+      loaded++;
+      if(loaded === photos.length){
+        const apply = () => {
+          ctx.drawImage(stripFrame, 0, 0, FRAME_W, STRIP_H);
+          canvas.toBlob(blob => uploadStrip(blob), "image/png");
+        };
+        (stripFrame.complete && stripFrame.naturalWidth > 0) ? apply() : (stripFrame.onload = apply);
+      }
+    };
+    img.src = src;
+  });
+}
+
+// ── Upload a Firebase ───────────────────────────────────
+async function uploadStrip(blob){
+  statusEl.textContent = "☁️ Subiendo foto...";
+  try {
+    const filename = `strips/${Date.now()}.png`;
+    const storageRef = ref(storage, filename);
+    await uploadBytes(storageRef, blob);
+    const url = await getDownloadURL(storageRef);
+
+    await addDoc(collection(db, "strips"), {
+      url,
+      createdAt: Date.now()
+    });
+
+    // También descarga local
+    const link = document.createElement("a");
+    link.download = `balmaceda-${Date.now()}.png`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+
+    btn.disabled = false;
+    statusEl.textContent = "🎉 ¡Foto guardada y en galería!";
+  } catch(e) {
+    console.error(e);
+    statusEl.textContent = "❌ Error al subir: " + e.message;
+    btn.disabled = false;
+  }
+}
+
+// ── Galería en tiempo real ──────────────────────────────
+const gallerDiv  = document.getElementById("gallery");
+const galCount   = document.getElementById("gallery-count");
+const galLoading = document.getElementById("gallery-loading");
+
+const q = query(collection(db, "strips"), orderBy("createdAt", "desc"));
+onSnapshot(q, snapshot => {
+  galLoading.style.display = "none";
+  gallerDiv.innerHTML = "";
+  galCount.textContent = `${snapshot.size} tira${snapshot.size !== 1 ? "s" : ""} tomada${snapshot.size !== 1 ? "s" : ""}`;
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const item = document.createElement("div");
+    item.className = "gallery-item";
+
+    const img = document.createElement("img");
+    img.src = data.url;
+    img.loading = "lazy";
+    img.onclick = () => openLightbox(data.url);
+
+    const ts = document.createElement("div");
+    ts.className = "ts";
+    ts.textContent = new Date(data.createdAt).toLocaleTimeString("es-CR", {hour:"2-digit", minute:"2-digit"});
+
+    const dlBtn = document.createElement("button");
+    dlBtn.className = "dl-btn";
+    dlBtn.textContent = "⬇️";
+    dlBtn.onclick = e => { e.stopPropagation(); downloadURL(data.url); };
+
+    item.appendChild(img);
+    item.appendChild(ts);
+    item.appendChild(dlBtn);
+    gallerDiv.appendChild(item);
+  });
+});
+
+// ── Lightbox ────────────────────────────────────────────
+let lightboxURL = "";
+
+window.openLightbox = function(url){
+  lightboxURL = url;
+  document.getElementById("lb-img").src = url;
+  document.getElementById("lightbox").classList.add("open");
+};
+window.closeLightbox = function(){
+  document.getElementById("lightbox").classList.remove("open");
+};
+window.downloadLightbox = function(){ downloadURL(lightboxURL); };
+
+function downloadURL(url){
+  fetch(url).then(r => r.blob()).then(b => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(b);
+    a.download = `balmaceda-${Date.now()}.png`;
+    a.click();
+  });
+}
+
+// ── Tabs / Link ─────────────────────────────────────────
+window.switchTab = function(id, btn){
+  document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  btn.classList.add("active");
+};
+
+document.getElementById("page-url").textContent = location.href;
+window.copyLink = function(){
+  navigator.clipboard.writeText(location.href)
+    .then(() => alert("✅ Link copiado"))
+    .catch(() => alert(location.href));
+};
+</script>
+</body>
+</html>
